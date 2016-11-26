@@ -1,40 +1,51 @@
 package com.bravolt.boss2016
 
+import java.io.{BufferedReader, InputStreamReader}
 import java.net.URI
-import java.time.temporal.TemporalField
 
 import com.fasterxml.jackson.core.JsonParser.Feature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
+import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
-import org.apache.spark.SparkConf
-import org.apache.spark.SparkContext
-import org.apache.spark.SparkContext._
+import org.apache.spark.{SparkConf, SparkContext}
 
-/**
-  * Created by dclifford on 11/18/16.
-  */
-case class Vote(choice: String, location: String, time: String) extends Serializable
+//case class Vote(choice: String, location: String, time: String) extends Serializable
 
-object ResultsApp {
-  def main(args: Array[String]): Unit = {
+object BetterResults {
+
+  def main(args : Array[String]) : Unit = {
     val conf = new SparkConf().setMaster("local[2]").setAppName("Results")
     val ctx = new SparkContext(conf)
+    val fs = FileSystem.get(new URI("hdfs://localhost:54310"), ctx.hadoopConfiguration)
+    val status = fs.listStatus(new Path("/votes"))
+    val files = status.map(input => input.getPath().getName)
 
-
-    val votes = ctx.textFile("hdfs://localhost:54310/votes/*").flatMap(input => {
+    val votes = ctx.parallelize(files).flatMap(input => {
+      val clientFs = FileSystem.get(new URI("hdfs://localhost:54310"), new Configuration())
+      val path = input.toString.replace("hdfs://localhost:54310", "")
+      val file = clientFs.open(new Path(s"/votes/$path"))
+      val reader = new BufferedReader(new InputStreamReader(file))
       val mapper = new ObjectMapper()
+
       mapper.registerModule(DefaultScalaModule)
       mapper.configure(Feature.ALLOW_SINGLE_QUOTES, true)
 
-        try {
-          Some(mapper.readValue(input, classOf[Vote]))
-        } catch {
-          case e: Exception => None
+      try {
+        //println(mapper.readValue(reader.readLine(), classOf[Vote]))
+        val line = reader.readLine()
+        val vote = Some(mapper.readValue(line, classOf[Vote]))
+        println(vote)
+        vote
+      }  catch {
+        case e: Exception => {
+          println(s"failed to parse $input")
+          None
         }
+      }
     })
 
-    val totalVotesForRDD = (votes.filter(_.choice == "yes"))
+    val totalVotesForRDD = votes.filter(_.choice == "yes")
     val totalVotesAgainstRDD = (votes.filter(_.choice == "no"))
     val badBallotsRDD = votes.filter(_.choice != "yes").filter(_.choice != "no")
     val yesVotesByLocationRDD = votes.filter(_.choice == "yes").map(input => (input.location, 1));
@@ -42,7 +53,7 @@ object ResultsApp {
     val fraudulantVotesByLocationRDD = votes.map(input => {
       val voteTime = java.time.LocalDateTime.ofInstant(java.time.Instant.ofEpochMilli(input.time.toLong), java.time.ZoneId.systemDefault())
 
-      println(voteTime.getHour)
+      //println(voteTime.getHour)
       if(voteTime.getHour > 20 || voteTime.getHour < 7) {
         (input.location, 1)
       } else {
@@ -59,11 +70,12 @@ object ResultsApp {
     val fraudulantVotes = fraudulantVotesByLocationRDD.count()
     val badBallots = badBallotsRDD.count()
 
-    println(s"for: $totalVotesFor, against: $totalVotesAgainst, total: $totalVotes")
+    println(s"totalVotes: $totalVotes")
+    println(s"for: $totalVotesFor, against: $totalVotesAgainst, totalVotes: $totalVotes")
     println(s"fraud alert: $fraudulantVotes appear to have voted fraudulantly")
     println(s"bad ballots: $badBallots")
 
-    //val votesByLocation = jsons.map(input => (input.asInstanceOf[Votes].location, 1)).reduceByKey((a,b) => a + b).collect.foreach(println)*/
-
+    //files.foreach(println)
   }
+
 }
