@@ -32,7 +32,7 @@ object ResultsApp {
         } catch {
           case e: Exception => None
         }
-    })
+    }).cache()
 
     val totalVotesForRDD = (votes.filter(_.choice == "true"))
     val totalVotesAgainstRDD = (votes.filter(_.choice == "false"))
