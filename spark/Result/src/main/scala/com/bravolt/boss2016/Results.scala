@@ -18,7 +18,7 @@ case class Vote(choice: String, location: String, time: String) extends Serializ
 
 object ResultsApp {
   def main(args: Array[String]): Unit = {
-    val conf = new SparkConf().setMaster("local[2]").setAppName("Results")
+    val conf = new SparkConf().setAppName("Results")
     val ctx = new SparkContext(conf)
 
 
@@ -42,7 +42,6 @@ object ResultsApp {
     val fraudulantVotesByLocationRDD = votes.map(input => {
       val voteTime = java.time.LocalDateTime.ofInstant(java.time.Instant.ofEpochMilli(input.time.toLong), java.time.ZoneId.systemDefault())
 
-      println(voteTime.getHour)
       if(voteTime.getHour > 20 || voteTime.getHour < 7) {
         (input.location, 1)
       } else {

@@ -18,7 +18,7 @@ import scala.io.Source
 object BetterResults {
 
   def main(args : Array[String]) : Unit = {
-    val conf = new SparkConf().setMaster("local[2]").setAppName("Results")
+    val conf = new SparkConf().setAppName("Results")
     val ctx = new SparkContext(conf)
     val fs = FileSystem.get(new URI("hdfs://localhost:54310"), ctx.hadoopConfiguration)
     val status = fs.listStatus(new Path("/votes"))
