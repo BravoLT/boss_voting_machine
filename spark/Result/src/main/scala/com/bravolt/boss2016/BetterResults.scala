@@ -23,10 +23,11 @@ object BetterResults {
     val fs = FileSystem.get(new URI("hdfs://localhost:54310"), ctx.hadoopConfiguration)
     val status = fs.listStatus(new Path("/votes"))
     val files = status.map(input => input.getPath().getName)
+    val url = System.getProperty("hdfs.master")
 
     val votes = ctx.parallelize(files).flatMap(input => {
-      val clientFs = FileSystem.get(new URI("hdfs://localhost:54310"), new Configuration())
-      val path = input.toString.replace("hdfs://localhost:54310", "")
+      val clientFs = FileSystem.get(new URI(url), new Configuration())
+      val path = input.toString.replace(url, "")
       val file = clientFs.open(new Path(s"/votes/$path"))
       val reader = new BufferedReader(new InputStreamReader(file))
       val mapper = new ObjectMapper()

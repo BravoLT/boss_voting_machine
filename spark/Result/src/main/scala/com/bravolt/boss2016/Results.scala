@@ -20,9 +20,10 @@ object ResultsApp {
   def main(args: Array[String]): Unit = {
     val conf = new SparkConf().setAppName("Results")
     val ctx = new SparkContext(conf)
+    val url = System.getProperty("hdfs.url")
 
 
-    val votes = ctx.textFile("hdfs://localhost:54310/votes/*").flatMap(input => {
+    val votes = ctx.textFile(url).flatMap(input => {
       val mapper = new ObjectMapper()
       mapper.registerModule(DefaultScalaModule)
       mapper.configure(Feature.ALLOW_SINGLE_QUOTES, true)
