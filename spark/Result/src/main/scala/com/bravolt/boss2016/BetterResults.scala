@@ -10,6 +10,9 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.spark.{SparkConf, SparkContext}
 
+import scala.collection.mutable.ListBuffer
+import scala.io.Source
+
 //case class Vote(choice: String, location: String, time: String) extends Serializable
 
 object BetterResults {
@@ -31,19 +34,19 @@ object BetterResults {
       mapper.registerModule(DefaultScalaModule)
       mapper.configure(Feature.ALLOW_SINGLE_QUOTES, true)
 
-      try {
-        //println(mapper.readValue(reader.readLine(), classOf[Vote]))
-        val line = reader.readLine()
-        val vote = Some(mapper.readValue(line, classOf[Vote]))
-        println(vote)
-        vote
-      }  catch {
-        case e: Exception => {
-          println(s"failed to parse $input")
-          None
+      var results = List[Vote]()
+      Stream.continually(reader.readLine()).takeWhile(_ != null).foreach(input => {
+        try {
+          results = mapper.readValue(input, classOf[Vote]) :: results
+        }  catch {
+          case e: Exception => {
+            println(s"failed to parse $input")
+          }
         }
-      }
-    })
+
+      })
+      results
+    }).cache()
 
     val totalVotesForRDD = votes.filter(_.choice == "yes")
     val totalVotesAgainstRDD = (votes.filter(_.choice == "no"))
@@ -53,7 +56,6 @@ object BetterResults {
     val fraudulantVotesByLocationRDD = votes.map(input => {
       val voteTime = java.time.LocalDateTime.ofInstant(java.time.Instant.ofEpochMilli(input.time.toLong), java.time.ZoneId.systemDefault())
 
-      //println(voteTime.getHour)
       if(voteTime.getHour > 20 || voteTime.getHour < 7) {
         (input.location, 1)
       } else {
