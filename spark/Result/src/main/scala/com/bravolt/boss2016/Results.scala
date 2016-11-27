@@ -22,7 +22,6 @@ object ResultsApp {
     val ctx = new SparkContext(conf)
     val url = System.getProperty("hdfs.url")
 
-
     val votes = ctx.textFile(url).flatMap(input => {
       val mapper = new ObjectMapper()
       mapper.registerModule(DefaultScalaModule)
@@ -35,11 +34,11 @@ object ResultsApp {
         }
     })
 
-    val totalVotesForRDD = (votes.filter(_.choice == "yes"))
-    val totalVotesAgainstRDD = (votes.filter(_.choice == "no"))
-    val badBallotsRDD = votes.filter(_.choice != "yes").filter(_.choice != "no")
-    val yesVotesByLocationRDD = votes.filter(_.choice == "yes").map(input => (input.location, 1));
-    val noVotesByLocationRDD = votes.filter(_.choice == "no").map(input => (input.location, 1));
+    val totalVotesForRDD = (votes.filter(_.choice == "true"))
+    val totalVotesAgainstRDD = (votes.filter(_.choice == "false"))
+    val badBallotsRDD = votes.filter(_.choice != "true").filter(_.choice != "false")
+    val yesVotesByLocationRDD = votes.filter(_.choice == "true").map(input => (input.location, 1));
+    val noVotesByLocationRDD = votes.filter(_.choice == "false").map(input => (input.location, 1));
     val fraudulantVotesByLocationRDD = votes.map(input => {
       val voteTime = java.time.LocalDateTime.ofInstant(java.time.Instant.ofEpochMilli(input.time.toLong), java.time.ZoneId.systemDefault())
 
