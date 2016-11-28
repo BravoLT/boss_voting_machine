@@ -46,6 +46,7 @@ object BetterResults {
         }
 
       })
+      reader.close()
       results
     }).cache()
 
