@@ -79,7 +79,6 @@ object BetterResults {
     println(s"fraud alert: $fraudulantVotes appear to have voted fraudulantly")
     println(s"bad ballots: $badBallots")
 
-    //files.foreach(println)
   }
 
 }
